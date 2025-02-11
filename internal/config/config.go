@@ -1,5 +1,10 @@
 package config
 
 type Config struct {
-	Debug bool `envconfig:"DEBUG" default:"false"`
+	TelegramBotConfig TelegramBotConfig
+}
+
+type TelegramBotConfig struct {
+	Token   string `envconfig:"TELEGRAM_BOT_TOKEN" required:"true"`
+	Timeout int    `envconfig:"TELEGRAM_BOT_POLLING_TIMEOUT" default:"30"`
 }
