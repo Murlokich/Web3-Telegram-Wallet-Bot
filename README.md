@@ -30,3 +30,8 @@ Web3 Telegram Wallet Bot is a project that services as platform for trading new 
    * Other stuff
 5) Reworking ETH solution to my own currency
 6) Visualisation of the account, transfers, statistics, coin price
+
+## Functionality:
+* gasPrice
+* feeHistory
+* getBalance
