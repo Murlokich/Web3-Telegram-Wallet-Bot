@@ -4,12 +4,13 @@ import (
 	"Web3-Telegram-Wallet-Bot/internal/commands"
 	"Web3-Telegram-Wallet-Bot/internal/config"
 	"context"
-	"github.com/kelseyhightower/envconfig"
-	"github.com/sirupsen/logrus"
-	"gopkg.in/telebot.v4"
 	"os/signal"
 	"syscall"
 	"time"
+
+	"github.com/kelseyhightower/envconfig"
+	"github.com/sirupsen/logrus"
+	"gopkg.in/telebot.v4"
 )
 
 func main() {
@@ -20,8 +21,8 @@ func main() {
 	var cfg config.Config
 	err := envconfig.Process("", &cfg)
 	if err != nil {
-		log.Fatalf("failed to process config: %v", err)
-		stop()
+		log.Errorf("failed to process config: %v", err)
+		return
 	}
 
 	botSettings := telebot.Settings{
@@ -30,8 +31,8 @@ func main() {
 	}
 	bot, err := telebot.NewBot(botSettings)
 	if err != nil {
-		log.Fatalf("failed to create bot: %v", err)
-		stop()
+		log.Errorf("failed to create bot: %v", err)
+		return
 	}
 
 	bot.Handle("/start", commands.Start)

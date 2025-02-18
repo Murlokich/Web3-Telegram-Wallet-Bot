@@ -3,22 +3,64 @@ package wallet
 import (
 	"crypto/ecdsa"
 	"encoding/hex"
+	"strconv"
+	"strings"
+	"unicode"
+
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/pkg/errors"
 	"github.com/tyler-smith/go-bip32"
 	"github.com/tyler-smith/go-bip39"
 	"golang.org/x/crypto/sha3"
-	"strconv"
-	"strings"
-	"unicode"
 )
 
 const (
 	hardenedLevelStart = 2147483648 // 2**31 for hardened levels
+	entropyBitSize     = 128        // for mnemonic of 12 words
 )
 
-func GenerateMnemonic() (string, error) {
-	entropy, err := bip39.NewEntropy(128)
+var (
+	ErrPublicKeyConversion = errors.New("cannot convert key to public key")
+)
+
+type HDWallet struct {
+	Mnemonic       string
+	MasterKey      *bip32.Key
+	ChangeLevelKey *bip32.Key
+}
+
+func GenerateHDWallet() (*HDWallet, error) {
+	var mnemonic string
+	var masterKey *bip32.Key
+	var changeLevelKey *bip32.Key
+	var err error
+	for {
+		mnemonic, err = generateMnemonic()
+		if err != nil {
+			return nil, errors.Wrap(err, "failed to generate mnemonic")
+		}
+		masterKey, err = generateMasterKey(mnemonic)
+		if errors.Is(err, bip32.ErrInvalidPrivateKey) {
+			continue
+		}
+		if err != nil {
+			return nil, errors.Wrap(err, "failed to generate master key")
+		}
+		changeLevelKey, err = generateChangeLevelKey(masterKey)
+		if errors.Is(err, bip32.ErrInvalidPrivateKey) {
+			continue
+		}
+		if err != nil {
+			return nil, errors.Wrap(err, "failed to generate change level key")
+		}
+
+		break
+	}
+	return &HDWallet{mnemonic, masterKey, changeLevelKey}, nil
+}
+
+func generateMnemonic() (string, error) {
+	entropy, err := bip39.NewEntropy(entropyBitSize)
 	if err != nil {
 		return "", errors.Wrap(err, "failed to generate entropy")
 	}
@@ -29,7 +71,7 @@ func GenerateMnemonic() (string, error) {
 	return mnemonic, nil
 }
 
-func GenerateMasterKey(mnemonic string) (*bip32.Key, error) {
+func generateMasterKey(mnemonic string) (*bip32.Key, error) {
 	seed := bip39.NewSeed(mnemonic, "")
 	masterKey, err := bip32.NewMasterKey(seed)
 	if err != nil {
@@ -38,7 +80,7 @@ func GenerateMasterKey(mnemonic string) (*bip32.Key, error) {
 	return masterKey, nil
 }
 
-func GenerateChangeLevelKey(masterKey *bip32.Key) (*bip32.Key, error) {
+func generateChangeLevelKey(masterKey *bip32.Key) (*bip32.Key, error) {
 	// Derive Change-Level Private Key`m/44'/60'/0'/0`
 	changeLevelPath := []uint32{44 + hardenedLevelStart, 60 + hardenedLevelStart, 0 + hardenedLevelStart, 0}
 	currentKey := masterKey
@@ -70,7 +112,10 @@ func GetAddress(changeLevelKeyHex string, addressIndex uint32) (string, error) {
 	if err != nil {
 		return "", errors.Wrap(err, "failed to convert address to ECDSA")
 	}
-	publicKey := privateKey.Public().(*ecdsa.PublicKey)
+	publicKey, ok := privateKey.Public().(*ecdsa.PublicKey)
+	if !ok {
+		return "", ErrPublicKeyConversion
+	}
 	publicKeyBytes := append(publicKey.X.Bytes(), publicKey.Y.Bytes()...)
 	address := crypto.Keccak256(publicKeyBytes)[12:]
 	addressFormatted := toCheckSumAddress(hex.EncodeToString(address))
