@@ -1,8 +1,8 @@
 package main
 
 import (
-	"Web3-Telegram-Wallet-Bot/internal/commands"
 	"Web3-Telegram-Wallet-Bot/internal/config"
+	"Web3-Telegram-Wallet-Bot/internal/handlers"
 	"context"
 	"os/signal"
 	"syscall"
@@ -18,6 +18,8 @@ func main() {
 	defer stop()
 
 	log := logrus.New()
+	log.SetFormatter(&logrus.JSONFormatter{})
+
 	var cfg config.Config
 	err := envconfig.Process("", &cfg)
 	if err != nil {
@@ -29,13 +31,15 @@ func main() {
 		Token:  cfg.TelegramBotConfig.Token,
 		Poller: &telebot.LongPoller{Timeout: time.Duration(cfg.TelegramBotConfig.Timeout) * time.Second},
 	}
+
 	bot, err := telebot.NewBot(botSettings)
 	if err != nil {
 		log.Errorf("failed to create bot: %v", err)
 		return
 	}
 
-	bot.Handle("/start", commands.Start)
+	dependencies := &handlers.BotDependencies{Logger: log.WithFields(logrus.Fields{})}
+	handlers.RegisterBotHandlers(bot, dependencies)
 
 	go bot.Start()
 
