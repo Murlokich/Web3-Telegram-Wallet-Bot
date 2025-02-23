@@ -1,0 +1,10 @@
+services:
+  db:
+    image: postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_PASSWORD: password
+      POSTGRES_USER: developer
+      POSTGRES_DB: eth-wallet
+    ports:
+      - "5432:5432"
