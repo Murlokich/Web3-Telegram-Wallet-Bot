@@ -10,7 +10,7 @@ import (
 )
 
 func RunMigrations(dbConfig *config.DBConfig) error {
-	m, err := migrate.New("file://db/migrations", dbConfig.URL)
+	m, err := migrate.New("file://migrations", dbConfig.URL)
 	if err != nil {
 		return errors.Wrap(err, "failed to create migration")
 	}

@@ -1,8 +1,8 @@
 package main
 
 import (
-	"Web3-Telegram-Wallet-Bot/db"
 	"Web3-Telegram-Wallet-Bot/internal/config"
+	"Web3-Telegram-Wallet-Bot/internal/db"
 	"Web3-Telegram-Wallet-Bot/internal/handlers"
 	"context"
 	"os/signal"
