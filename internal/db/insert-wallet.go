@@ -24,7 +24,7 @@ func (e *InsertAnomalyError) Error() string {
 }
 
 func InsertWallet(ctx context.Context, conn *pgx.Conn, userID int64,
-	mkEntry *encryption.EncryptedEntry, clkEntry *encryption.EncryptedEntry) (retError error) {
+	mkEntry *encryption.EncryptedEntry, clkEntry *encryption.EncryptedEntry) error {
 	query := "INSERT INTO user_wallet VALUES ($1, $2, $3, $4, $5, DEFAULT)"
 	tag, err := conn.Exec(ctx, query, userID, mkEntry.Ciphertext, mkEntry.Nonce, clkEntry.Ciphertext, clkEntry.Nonce)
 	if err != nil {
