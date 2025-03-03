@@ -102,11 +102,7 @@ func generateChangeLevelKey(masterKey *bip32.Key) (*bip32.Key, error) {
 	return currentKey, nil
 }
 
-func GetAddress(changeLevelKeyHex string, addressIndex uint32) (string, error) {
-	changeLevelKeyBytes, err := hex.DecodeString(changeLevelKeyHex)
-	if err != nil {
-		return "", errors.Wrap(err, "failed to decode change level key")
-	}
+func GetAddress(changeLevelKeyBytes []byte, addressIndex uint32) (string, error) {
 	changeLevelKey, err := bip32.Deserialize(changeLevelKeyBytes)
 	if err != nil {
 		return "", errors.Wrap(err, "failed to deserialize change level key")

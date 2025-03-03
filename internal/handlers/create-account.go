@@ -4,7 +4,7 @@ import (
 	"Web3-Telegram-Wallet-Bot/internal/db"
 	"Web3-Telegram-Wallet-Bot/internal/wallet"
 	"context"
-
+	"fmt"
 	"gopkg.in/telebot.v4"
 )
 
@@ -35,9 +35,10 @@ func CreateAccount(tgCtx telebot.Context, dependencies *BotDependencies) error {
 		dependencies.Logger.Error("Failed to encrypt change level key: ", err)
 		return tgCtx.Send(internalErrorMessage)
 	}
-	if err = db.InsertKeys(ctx, dependencies.DB, tgCtx.Sender().ID, mkEntry, clkEntry); err != nil {
+	if err = db.InsertWallet(ctx, dependencies.DB, tgCtx.Sender().ID, mkEntry, clkEntry); err != nil {
 		dependencies.Logger.Error("Failed to insert keys: ", err)
 		return tgCtx.Send(internalErrorMessage)
 	}
-	return tgCtx.Send(wlt.Mnemonic)
+	message := fmt.Sprintf("Please, remember your mnemonic: \n%s", wlt.Mnemonic)
+	return tgCtx.Send(message)
 }

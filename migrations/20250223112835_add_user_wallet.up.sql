@@ -1,15 +1,12 @@
 BEGIN;
 
-CREATE TABLE IF NOT EXISTS user_master_key (
+CREATE TABLE IF NOT EXISTS user_wallet (
     user_id BIGINT PRIMARY KEY,
     master_key BYTEA,
-    nonce BYTEA
-);
-
-CREATE TABLE IF NOT EXISTS user_change_level_key (
-    user_id BIGINT PRIMARY KEY,
+    master_nonce BYTEA,
     change_level_key BYTEA,
-    nonce BYTEA
+    clk_nonce BYTEA,
+    last_address_index INT DEFAULT 0
 );
 
 COMMIT;
