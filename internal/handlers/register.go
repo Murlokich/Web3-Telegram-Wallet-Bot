@@ -9,4 +9,8 @@ func RegisterBotHandlers(bot *telebot.Bot, dependencies *BotDependencies) {
 	bot.Handle("/start", dependencies.UpdateLoggerFields(logrus.Fields{
 		"command": "/start"},
 	).WrapHandler(Start))
+
+	bot.Handle("/register", dependencies.UpdateLoggerFields(logrus.Fields{
+		"command": "/register"},
+	).WrapHandler(CreateAccount))
 }

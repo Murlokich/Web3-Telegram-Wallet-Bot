@@ -25,8 +25,8 @@ var (
 
 type HDWallet struct {
 	Mnemonic       string
-	MasterKey      *bip32.Key
-	ChangeLevelKey *bip32.Key
+	MasterKey      []byte
+	ChangeLevelKey []byte
 }
 
 func GenerateHDWallet() (*HDWallet, error) {
@@ -56,7 +56,15 @@ func GenerateHDWallet() (*HDWallet, error) {
 
 		break
 	}
-	return &HDWallet{mnemonic, masterKey, changeLevelKey}, nil
+	mkBytes, err := masterKey.Serialize()
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to serialize master key")
+	}
+	clkBytes, err := changeLevelKey.Serialize()
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to serialize change level key")
+	}
+	return &HDWallet{mnemonic, mkBytes, clkBytes}, nil
 }
 
 func generateMnemonic() (string, error) {

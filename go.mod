@@ -3,6 +3,7 @@ module Web3-Telegram-Wallet-Bot
 go 1.23
 
 require (
+	github.com/cmars/basen v0.0.0-20150613233007-fe3947df716e
 	github.com/ethereum/go-ethereum v1.15.1
 	github.com/golang-migrate/migrate/v4 v4.18.2
 	github.com/jackc/pgx/v5 v5.5.4

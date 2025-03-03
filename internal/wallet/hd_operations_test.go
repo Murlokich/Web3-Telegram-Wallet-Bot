@@ -13,9 +13,9 @@ import (
 )
 
 const (
-	cycles                 = 3
-	wordSetLength          = 12
-	privateKeyBase58Length = 111
+	cycles                = 3
+	wordSetLength         = 12
+	privateKeyBytesLength = 82
 )
 
 func TestGenerateMnemonic(t *testing.T) {
@@ -139,7 +139,7 @@ func TestGenerateAddress(t *testing.T) {
 		require.NoError(t, err)
 		words := strings.Split(wallet.Mnemonic, " ")
 		assert.Len(t, words, wordSetLength)
-		assert.Len(t, wallet.MasterKey.String(), privateKeyBase58Length)
-		assert.Len(t, wallet.ChangeLevelKey.String(), privateKeyBase58Length)
+		assert.Len(t, wallet.MasterKey, privateKeyBytesLength)
+		assert.Len(t, wallet.ChangeLevelKey, privateKeyBytesLength)
 	}
 }

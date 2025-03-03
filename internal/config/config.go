@@ -3,6 +3,7 @@ package config
 type Config struct {
 	TelegramBotConfig TelegramBotConfig
 	DBConfig          DBConfig
+	Encryption        Encryption
 }
 
 type TelegramBotConfig struct {
@@ -13,4 +14,8 @@ type TelegramBotConfig struct {
 type DBConfig struct {
 	URL              string `envconfig:"DB_URL" required:"true"`
 	MigrationVersion uint   `envconfig:"DB_MIGRATION_VERSION" required:"true"`
+}
+
+type Encryption struct {
+	MasterKey string `envconfig:"ENCRYPTION_MASTER_KEY" required:"true"`
 }

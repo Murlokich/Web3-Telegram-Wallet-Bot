@@ -1,6 +1,8 @@
 package handlers
 
 import (
+	"Web3-Telegram-Wallet-Bot/internal/encryption"
+
 	"github.com/jackc/pgx/v5"
 	"github.com/sirupsen/logrus"
 	"gopkg.in/telebot.v4"
@@ -9,25 +11,19 @@ import (
 type Handler func(ctx telebot.Context, deps *BotDependencies) error
 
 type BotDependencies struct {
-	Logger *logrus.Entry
-	DB     *pgx.Conn
+	Logger    *logrus.Entry
+	DB        *pgx.Conn
+	Encryptor *encryption.Encryptor
 }
 
 func (d *BotDependencies) UpdateLoggerFields(fields logrus.Fields) *BotDependencies {
-	return &BotDependencies{
-		Logger: d.Logger.WithFields(fields),
-	}
+	newDependencies := *d
+	newDependencies.Logger = d.Logger.WithFields(fields)
+	return &newDependencies
 }
 
 func (d *BotDependencies) WrapHandler(handler Handler) telebot.HandlerFunc {
 	return func(ctx telebot.Context) error {
-		logEntry := d.Logger.WithFields(logrus.Fields{
-			"user_id": ctx.Sender().ID,
-		})
-		newDeps := &BotDependencies{
-			Logger: logEntry,
-			DB:     d.DB,
-		}
-		return handler(ctx, newDeps)
+		return handler(ctx, d.UpdateLoggerFields(logrus.Fields{"user_id": ctx.Sender().ID}))
 	}
 }

@@ -3,6 +3,7 @@ package main
 import (
 	"Web3-Telegram-Wallet-Bot/internal/config"
 	"Web3-Telegram-Wallet-Bot/internal/db"
+	"Web3-Telegram-Wallet-Bot/internal/encryption"
 	"Web3-Telegram-Wallet-Bot/internal/handlers"
 	"context"
 	"os/signal"
@@ -48,6 +49,12 @@ func main() {
 		return
 	}
 
+	encryptor, err := encryption.NewEncryptor(cfg.Encryption.MasterKey)
+	if err != nil {
+		log.Errorf("failed to create encryptor: %v", err)
+		return
+	}
+
 	conn, err := pgx.Connect(ctx, cfg.DBConfig.URL)
 	if err != nil {
 		log.Errorf("failed to connect to database: %v", err)
@@ -55,8 +62,9 @@ func main() {
 	}
 
 	dependencies := &handlers.BotDependencies{
-		Logger: log.WithFields(logrus.Fields{}),
-		DB:     conn,
+		Logger:    log.WithFields(logrus.Fields{}),
+		DB:        conn,
+		Encryptor: encryptor,
 	}
 	handlers.RegisterBotHandlers(bot, dependencies)
 

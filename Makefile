@@ -13,6 +13,6 @@ test: ## Run tests and display coverage
 	@go tool cover -func=coverage.out
 	@rm -f coverage.out
 
-lint:
+lint: ## Run linters
 	@golangci-lint run -v --timeout=5m ./...
 
