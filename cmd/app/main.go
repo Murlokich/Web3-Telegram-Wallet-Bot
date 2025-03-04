@@ -11,7 +11,6 @@ import (
 	"time"
 
 	"github.com/golang-migrate/migrate/v4"
-	"github.com/jackc/pgx/v5"
 	"github.com/pkg/errors"
 
 	"github.com/kelseyhightower/envconfig"
@@ -55,15 +54,15 @@ func main() {
 		return
 	}
 
-	conn, err := pgx.Connect(ctx, cfg.DBConfig.URL)
+	dbClient, err := db.NewClient(ctx, &cfg.DBConfig)
 	if err != nil {
-		log.Errorf("failed to connect to database: %v", err)
+		log.Errorf("failed to create db client: %v", err)
 		return
 	}
 
 	dependencies := &handlers.BotDependencies{
 		Logger:    log.WithFields(logrus.Fields{}),
-		DB:        conn,
+		DB:        dbClient,
 		Encryptor: encryptor,
 	}
 	handlers.RegisterBotHandlers(bot, dependencies)
@@ -75,7 +74,7 @@ func main() {
 
 	stop()
 	log.Infoln("shutting down gracefully")
-	if err = conn.Close(context.Background()); err != nil {
+	if err = dbClient.Close(); err != nil {
 		log.Errorf("failed to close connection to database: %v", err)
 	} else {
 		log.Info("connection to database closed")

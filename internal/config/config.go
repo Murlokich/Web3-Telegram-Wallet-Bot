@@ -19,3 +19,7 @@ type DBConfig struct {
 type Encryption struct {
 	MasterKey string `envconfig:"ENCRYPTION_MASTER_KEY" required:"true"`
 }
+
+type Infura struct {
+	Endpoint string `envconfig:"INFURA_ENDPOINT" required:"true"`
+}

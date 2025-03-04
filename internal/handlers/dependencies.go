@@ -3,7 +3,6 @@ package handlers
 import (
 	"Web3-Telegram-Wallet-Bot/internal/encryption"
 
-	"github.com/jackc/pgx/v5"
 	"github.com/sirupsen/logrus"
 	"gopkg.in/telebot.v4"
 )
@@ -12,7 +11,7 @@ type Handler func(ctx telebot.Context, deps *BotDependencies) error
 
 type BotDependencies struct {
 	Logger    *logrus.Entry
-	DB        *pgx.Conn
+	DB        DBProvider
 	Encryptor *encryption.Encryptor
 }
 

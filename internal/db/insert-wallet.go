@@ -5,7 +5,6 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/jackc/pgx/v5"
 	"github.com/pkg/errors"
 )
 
@@ -23,10 +22,10 @@ func (e *InsertAnomalyError) Error() string {
 		insertWalletAffectedRows, e.Insert, e.RowsAffected)
 }
 
-func InsertWallet(ctx context.Context, conn *pgx.Conn, userID int64,
+func (c *Client) InsertWallet(ctx context.Context, userID int64,
 	mkEntry *encryption.EncryptedEntry, clkEntry *encryption.EncryptedEntry) error {
 	query := "INSERT INTO user_wallet VALUES ($1, $2, $3, $4, $5, DEFAULT)"
-	tag, err := conn.Exec(ctx, query, userID, mkEntry.Ciphertext, mkEntry.Nonce, clkEntry.Ciphertext, clkEntry.Nonce)
+	tag, err := c.conn.Exec(ctx, query, userID, mkEntry.Ciphertext, mkEntry.Nonce, clkEntry.Ciphertext, clkEntry.Nonce)
 	if err != nil {
 		return errors.Wrap(err, "failed to execute query")
 	}

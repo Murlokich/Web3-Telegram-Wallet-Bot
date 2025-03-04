@@ -5,6 +5,7 @@ import (
 	"Web3-Telegram-Wallet-Bot/internal/wallet"
 	"context"
 	"fmt"
+	"strconv"
 
 	"github.com/pkg/errors"
 	"github.com/tyler-smith/go-bip39"
@@ -15,6 +16,7 @@ import (
 const (
 	invalidMnemonic      = "Mnemonic you have provided is invalid. Please check your input and try again."
 	internalErrorMessage = "Internal Server Error, please try again later"
+	invalidIndex         = "Index you have provided is invalid. Please check your input and try again."
 	initialAddressIndex  = 0
 )
 
@@ -102,4 +104,35 @@ func AddNewAddress(tgCtx telebot.Context, dependencies *BotDependencies) error {
 	}
 	message := fmt.Sprintf("Your new ETH address is: %s", address)
 	return tgCtx.Send(message)
+}
+
+func GetBalance(tgCtx telebot.Context, dependencies *BotDependencies) error {
+	ctx := context.Background()
+	dependencies.Logger.Info("Getting Balance")
+	entry, lindex, err := db.GetChangeLevelKey(ctx, dependencies.DB, tgCtx.Sender().ID)
+	if err != nil {
+		dependencies.Logger.Error("Failed to get change level key: ", err)
+		return tgCtx.Send(internalErrorMessage)
+	}
+	index, err := strconv.ParseInt(tgCtx.Data(), 10, 4)
+	if err != nil {
+		dependencies.Logger.Error("Failed to parse index: ", err)
+		return tgCtx.Send(invalidIndex)
+	}
+	indexu32 := uint32(index)
+	if index < 0 || indexu32 > lindex {
+		dependencies.Logger.Error("Invalid index")
+		return tgCtx.Send(invalidIndex)
+	}
+	clk, err := dependencies.Encryptor.Decrypt(entry)
+	if err != nil {
+		dependencies.Logger.Error("Failed to decrypt entry: ", err)
+		return tgCtx.Send(internalErrorMessage)
+	}
+	addr, err := wallet.GetAddress(clk, indexu32)
+	if err != nil {
+		dependencies.Logger.Error("Failed to get address: ", err)
+		return tgCtx.Send(internalErrorMessage)
+	}
+
 }
