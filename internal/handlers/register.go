@@ -17,4 +17,8 @@ func RegisterBotHandlers(bot *telebot.Bot, dependencies *BotDependencies) {
 	bot.Handle("/new_address", dependencies.UpdateLoggerFields(logrus.Fields{
 		"command": "/new_address"},
 	).WrapHandler(AddNewAddress))
+
+	bot.Handle("/migrate", dependencies.UpdateLoggerFields(logrus.Fields{
+		"command": "/migrate"},
+	).WrapHandler(MigrateAccount))
 }

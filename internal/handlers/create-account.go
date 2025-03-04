@@ -6,10 +6,14 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/pkg/errors"
+	"github.com/tyler-smith/go-bip39"
+
 	"gopkg.in/telebot.v4"
 )
 
 const (
+	invalidMnemonic      = "Mnemonic you have provided is invalid. Please check your input and try again."
 	internalErrorMessage = "Internal Server Error, please try again later"
 	initialAddressIndex  = 0
 )
@@ -27,29 +31,55 @@ func CreateAccount(tgCtx telebot.Context, dependencies *BotDependencies) error {
 		dependencies.Logger.Error("Failed to generate HDWallet: ", err)
 		return tgCtx.Send(internalErrorMessage)
 	}
-	mkEntry, err := dependencies.Encryptor.Encrypt(wlt.MasterKey)
+	initialAddress, err := saveWallet(ctx, dependencies, wlt, tgCtx.Sender().ID)
 	if err != nil {
-		dependencies.Logger.Error("Failed to encrypt master key: ", err)
-		return tgCtx.Send(internalErrorMessage)
-	}
-	clkEntry, err := dependencies.Encryptor.Encrypt(wlt.ChangeLevelKey)
-	if err != nil {
-		dependencies.Logger.Error("Failed to encrypt change level key: ", err)
-		return tgCtx.Send(internalErrorMessage)
-	}
-	initialAddress, err := wallet.GetAddress(wlt.ChangeLevelKey, initialAddressIndex)
-	if err != nil {
-		dependencies.Logger.Error("Failed to get initial address: ", err)
-		return tgCtx.Send(internalErrorMessage)
-	}
-	if err = db.InsertWallet(ctx, dependencies.DB, tgCtx.Sender().ID, mkEntry, clkEntry); err != nil {
-		dependencies.Logger.Error("Failed to insert keys: ", err)
+		dependencies.Logger.Error("Failed to save wallet: ", err)
 		return tgCtx.Send(internalErrorMessage)
 	}
 	message := fmt.Sprintf("Please, remember your mnemonic:\n%s\n\nYour initial ETH address: %s",
 		wlt.Mnemonic, initialAddress)
-
 	return tgCtx.Send(message)
+}
+
+func MigrateAccount(tgCtx telebot.Context, dependencies *BotDependencies) error {
+	ctx := context.Background()
+	dependencies.Logger.Info("Migrating Account")
+	mnemonic := tgCtx.Data()
+	if !bip39.IsMnemonicValid(mnemonic) {
+		dependencies.Logger.Error("Invalid mnemonic")
+		return tgCtx.Send(invalidMnemonic)
+	}
+	wlt, err := wallet.DeriveWalletFromMnemonic(mnemonic)
+	if err != nil {
+		dependencies.Logger.Error("Failed to derive wallet from mnemonic: ", err)
+		return tgCtx.Send(internalErrorMessage)
+	}
+	initialAddress, err := saveWallet(ctx, dependencies, wlt, tgCtx.Sender().ID)
+	if err != nil {
+		dependencies.Logger.Error("Failed to save wallet: ", err)
+		return tgCtx.Send(internalErrorMessage)
+	}
+	message := fmt.Sprintf("Your initial ETH address: %s", initialAddress)
+	return tgCtx.Send(message)
+}
+
+func saveWallet(ctx context.Context, dependencies *BotDependencies, wlt *wallet.HDWallet, userID int64) (string, error) {
+	mkEntry, err := dependencies.Encryptor.Encrypt(wlt.MasterKey)
+	if err != nil {
+		return "", errors.Wrap(err, "Failed to encrypt master key")
+	}
+	clkEntry, err := dependencies.Encryptor.Encrypt(wlt.ChangeLevelKey)
+	if err != nil {
+		return "", errors.Wrap(err, "Failed to encrypt change level key")
+	}
+	initialAddress, err := wallet.GetAddress(wlt.ChangeLevelKey, initialAddressIndex)
+	if err != nil {
+		return "", errors.Wrap(err, "Failed to get initial address")
+	}
+	if err = db.InsertWallet(ctx, dependencies.DB, userID, mkEntry, clkEntry); err != nil {
+		return "", errors.Wrap(err, "Failed to insert wallet")
+	}
+	return initialAddress, nil
 }
 
 func AddNewAddress(tgCtx telebot.Context, dependencies *BotDependencies) error {

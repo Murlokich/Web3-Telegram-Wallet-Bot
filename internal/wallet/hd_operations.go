@@ -31,30 +31,32 @@ type HDWallet struct {
 
 func GenerateHDWallet() (*HDWallet, error) {
 	var mnemonic string
-	var masterKey *bip32.Key
-	var changeLevelKey *bip32.Key
+	var wlt *HDWallet
 	var err error
 	for {
 		mnemonic, err = generateMnemonic()
 		if err != nil {
 			return nil, errors.Wrap(err, "failed to generate mnemonic")
 		}
-		masterKey, err = generateMasterKey(mnemonic)
-		if errors.Is(err, bip32.ErrInvalidPrivateKey) {
-			continue
+		wlt, err = DeriveWalletFromMnemonic(mnemonic)
+		if err == nil {
+			break
 		}
-		if err != nil {
-			return nil, errors.Wrap(err, "failed to generate master key")
+		if !errors.Is(err, bip32.ErrInvalidPrivateKey) {
+			return nil, errors.Wrap(err, "failed to derive wallet")
 		}
-		changeLevelKey, err = generateChangeLevelKey(masterKey)
-		if errors.Is(err, bip32.ErrInvalidPrivateKey) {
-			continue
-		}
-		if err != nil {
-			return nil, errors.Wrap(err, "failed to generate change level key")
-		}
+	}
+	return wlt, nil
+}
 
-		break
+func DeriveWalletFromMnemonic(mnemonic string) (*HDWallet, error) {
+	masterKey, err := deriveMasterKey(mnemonic)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to derive master key")
+	}
+	changeLevelKey, err := deriveChangeLevelKey(masterKey)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to derive change level key")
 	}
 	mkBytes, err := masterKey.Serialize()
 	if err != nil {
@@ -79,16 +81,16 @@ func generateMnemonic() (string, error) {
 	return mnemonic, nil
 }
 
-func generateMasterKey(mnemonic string) (*bip32.Key, error) {
+func deriveMasterKey(mnemonic string) (*bip32.Key, error) {
 	seed := bip39.NewSeed(mnemonic, "")
 	masterKey, err := bip32.NewMasterKey(seed)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to generate master key from the seed")
+		return nil, errors.Wrap(err, "failed to derive master key from the seed")
 	}
 	return masterKey, nil
 }
 
-func generateChangeLevelKey(masterKey *bip32.Key) (*bip32.Key, error) {
+func deriveChangeLevelKey(masterKey *bip32.Key) (*bip32.Key, error) {
 	// Derive Change-Level Private Key`m/44'/60'/0'/0`
 	changeLevelPath := []uint32{44 + hardenedLevelStart, 60 + hardenedLevelStart, 0 + hardenedLevelStart, 0}
 	currentKey := masterKey

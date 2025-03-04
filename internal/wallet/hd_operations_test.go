@@ -48,7 +48,7 @@ func TestGenerateMasterKey(t *testing.T) {
 	for _, tc := range tt {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
-			mk, err := generateMasterKey(tc.mnemonic)
+			mk, err := deriveMasterKey(tc.mnemonic)
 			require.NoError(t, err)
 			assert.Equal(t, tc.masterKey, mk.String())
 		})
@@ -79,7 +79,7 @@ func TestGenerateChangeLevelKey(t *testing.T) {
 			t.Parallel()
 			mk, err := bip32.B58Deserialize(tc.masterKey)
 			require.NoError(t, err)
-			changeLevelKey, err := generateChangeLevelKey(mk)
+			changeLevelKey, err := deriveChangeLevelKey(mk)
 			require.NoError(t, err)
 			assert.Equal(t, tc.changeLevelKey, changeLevelKey.String())
 		})
