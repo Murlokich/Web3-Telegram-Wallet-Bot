@@ -1,6 +1,7 @@
-package encryption
+package aes
 
 import (
+	"Web3-Telegram-Wallet-Bot/internal/encryption"
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/rand"
@@ -14,12 +15,7 @@ type Encryptor struct {
 	gcm cipher.AEAD
 }
 
-type EncryptedEntry struct {
-	Ciphertext []byte
-	Nonce      []byte
-}
-
-func NewEncryptor(masterKeyB64 string) (*Encryptor, error) {
+func New(masterKeyB64 string) (*Encryptor, error) {
 	masterKey, err := base64.StdEncoding.DecodeString(masterKeyB64)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to decode master key")
@@ -35,20 +31,20 @@ func NewEncryptor(masterKeyB64 string) (*Encryptor, error) {
 	return &Encryptor{gcm: gcm}, nil
 }
 
-func (e *Encryptor) Encrypt(plaintextBytes []byte) (*EncryptedEntry, error) {
+func (e *Encryptor) Encrypt(plaintextBytes []byte) (*encryption.EncryptedEntry, error) {
 	nonce := make([]byte, e.gcm.NonceSize())
 	if _, err := io.ReadFull(rand.Reader, nonce); err != nil {
 		return nil, errors.Wrap(err, "failed to generate nonce")
 	}
 	ciphertext := e.gcm.Seal(nil, nonce, plaintextBytes, nil)
 
-	return &EncryptedEntry{
+	return &encryption.EncryptedEntry{
 		Ciphertext: ciphertext,
 		Nonce:      nonce,
 	}, nil
 }
 
-func (e *Encryptor) Decrypt(entry *EncryptedEntry) ([]byte, error) {
+func (e *Encryptor) Decrypt(entry *encryption.EncryptedEntry) ([]byte, error) {
 	decryptedBytes, err := e.gcm.Open(nil, entry.Nonce, entry.Ciphertext, nil)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to decrypt ciphertext")

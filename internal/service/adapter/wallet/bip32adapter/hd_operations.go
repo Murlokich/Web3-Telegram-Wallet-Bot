@@ -1,6 +1,7 @@
-package wallet
+package bip32adapter
 
 import (
+	"Web3-Telegram-Wallet-Bot/internal/domain"
 	"crypto/ecdsa"
 	"encoding/hex"
 	"strconv"
@@ -23,38 +24,38 @@ var (
 	ErrPublicKeyConversion = errors.New("cannot convert key to public key")
 )
 
-type HDWallet struct {
-	Mnemonic       string
-	MasterKey      []byte
-	ChangeLevelKey []byte
+type BIP32Adapter struct{}
+
+func New() *BIP32Adapter {
+	return &BIP32Adapter{}
 }
 
-func GenerateHDWallet() (*HDWallet, error) {
+func (a *BIP32Adapter) GenerateHDWallet(userID int64) (*domain.HDWallet, string, error) {
 	var mnemonic string
-	var wlt *HDWallet
+	var wlt *domain.HDWallet
 	var err error
 	for {
-		mnemonic, err = generateMnemonic()
+		mnemonic, err = a.generateMnemonic()
 		if err != nil {
-			return nil, errors.Wrap(err, "failed to generate mnemonic")
+			return nil, "", errors.Wrap(err, "failed to generate mnemonic")
 		}
-		wlt, err = DeriveWalletFromMnemonic(mnemonic)
+		wlt, err = a.DeriveWalletFromMnemonic(mnemonic, userID)
 		if err == nil {
 			break
 		}
 		if !errors.Is(err, bip32.ErrInvalidPrivateKey) {
-			return nil, errors.Wrap(err, "failed to derive wallet")
+			return nil, "", errors.Wrap(err, "failed to derive wallet")
 		}
 	}
-	return wlt, nil
+	return wlt, mnemonic, nil
 }
 
-func DeriveWalletFromMnemonic(mnemonic string) (*HDWallet, error) {
-	masterKey, err := deriveMasterKey(mnemonic)
+func (a *BIP32Adapter) DeriveWalletFromMnemonic(mnemonic string, userID int64) (*domain.HDWallet, error) {
+	masterKey, err := a.deriveMasterKey(mnemonic)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to derive master key")
 	}
-	changeLevelKey, err := deriveChangeLevelKey(masterKey)
+	changeLevelKey, err := a.deriveChangeLevelKey(masterKey)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to derive change level key")
 	}
@@ -66,10 +67,11 @@ func DeriveWalletFromMnemonic(mnemonic string) (*HDWallet, error) {
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to serialize change level key")
 	}
-	return &HDWallet{mnemonic, mkBytes, clkBytes}, nil
+	return &domain.HDWallet{UserID: userID, MasterKey: mkBytes,
+		AddressManagementData: &domain.AddressManagementData{ChangeLevelKey: clkBytes}}, nil
 }
 
-func generateMnemonic() (string, error) {
+func (a *BIP32Adapter) generateMnemonic() (string, error) {
 	entropy, err := bip39.NewEntropy(entropyBitSize)
 	if err != nil {
 		return "", errors.Wrap(err, "failed to generate entropy")
@@ -81,7 +83,7 @@ func generateMnemonic() (string, error) {
 	return mnemonic, nil
 }
 
-func deriveMasterKey(mnemonic string) (*bip32.Key, error) {
+func (a *BIP32Adapter) deriveMasterKey(mnemonic string) (*bip32.Key, error) {
 	seed := bip39.NewSeed(mnemonic, "")
 	masterKey, err := bip32.NewMasterKey(seed)
 	if err != nil {
@@ -90,7 +92,7 @@ func deriveMasterKey(mnemonic string) (*bip32.Key, error) {
 	return masterKey, nil
 }
 
-func deriveChangeLevelKey(masterKey *bip32.Key) (*bip32.Key, error) {
+func (a *BIP32Adapter) deriveChangeLevelKey(masterKey *bip32.Key) (*bip32.Key, error) {
 	// Derive Change-Level Private Key`m/44'/60'/0'/0`
 	changeLevelPath := []uint32{44 + hardenedLevelStart, 60 + hardenedLevelStart, 0 + hardenedLevelStart, 0}
 	currentKey := masterKey
@@ -104,7 +106,7 @@ func deriveChangeLevelKey(masterKey *bip32.Key) (*bip32.Key, error) {
 	return currentKey, nil
 }
 
-func GetAddress(changeLevelKeyBytes []byte, addressIndex uint32) (string, error) {
+func (a *BIP32Adapter) GetAddress(changeLevelKeyBytes []byte, addressIndex uint32) (string, error) {
 	changeLevelKey, err := bip32.Deserialize(changeLevelKeyBytes)
 	if err != nil {
 		return "", errors.Wrap(err, "failed to deserialize change level key")
@@ -124,11 +126,11 @@ func GetAddress(changeLevelKeyBytes []byte, addressIndex uint32) (string, error)
 	}
 	publicKeyBytes := append(publicKey.X.Bytes(), publicKey.Y.Bytes()...)
 	address := crypto.Keccak256(publicKeyBytes)[12:]
-	addressFormatted := toCheckSumAddress(hex.EncodeToString(address))
+	addressFormatted := a.toCheckSumAddress(hex.EncodeToString(address))
 	return addressFormatted, nil
 }
 
-func toCheckSumAddress(address string) string {
+func (a *BIP32Adapter) toCheckSumAddress(address string) string {
 	hash := sha3.NewLegacyKeccak256()
 	hash.Write([]byte(address))
 	hashedAddress := hex.EncodeToString(hash.Sum(nil))

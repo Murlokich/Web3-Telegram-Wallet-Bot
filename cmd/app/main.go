@@ -2,9 +2,12 @@ package main
 
 import (
 	"Web3-Telegram-Wallet-Bot/internal/config"
-	"Web3-Telegram-Wallet-Bot/internal/db"
-	"Web3-Telegram-Wallet-Bot/internal/encryption"
-	"Web3-Telegram-Wallet-Bot/internal/handlers"
+	"Web3-Telegram-Wallet-Bot/internal/controller/telegram"
+	"Web3-Telegram-Wallet-Bot/internal/encryption/aes"
+	"Web3-Telegram-Wallet-Bot/internal/repository"
+	postgres2 "Web3-Telegram-Wallet-Bot/internal/repository/postgres"
+	"Web3-Telegram-Wallet-Bot/internal/service/account"
+	"Web3-Telegram-Wallet-Bot/internal/service/adapter/wallet/bip32adapter"
 	"context"
 	"os/signal"
 	"syscall"
@@ -17,6 +20,25 @@ import (
 	"github.com/sirupsen/logrus"
 	"gopkg.in/telebot.v4"
 )
+
+func runMigrations(dbConfig *config.DBConfig) error {
+	m, err := migrate.New("file://migrations", dbConfig.URL)
+	if err != nil {
+		return errors.Wrap(err, "failed to create migration")
+	}
+	err = m.Migrate(dbConfig.MigrationVersion)
+	if err != nil {
+		return errors.Wrap(err, "failed to migrate database")
+	}
+	errSrc, errDB := m.Close()
+	if errSrc != nil {
+		return errors.Wrap(err, "failed to close migration source")
+	}
+	if errDB != nil {
+		return errors.Wrap(err, "failed to close database connection")
+	}
+	return nil
+}
 
 func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
@@ -43,29 +65,32 @@ func main() {
 		return
 	}
 
-	if err = db.RunMigrations(&cfg.DBConfig); err != nil && !errors.Is(err, migrate.ErrNoChange) {
+	if err = runMigrations(&cfg.DBConfig); err != nil && !errors.Is(err, migrate.ErrNoChange) {
 		log.Errorf("failed to run migrations: %v", err)
 		return
 	}
 
-	encryptor, err := encryption.NewEncryptor(cfg.Encryption.MasterKey)
+	encryptor, err := aes.New(cfg.Encryption.MasterKey)
 	if err != nil {
 		log.Errorf("failed to create encryptor: %v", err)
 		return
 	}
 
-	dbClient, err := db.NewClient(ctx, &cfg.DBConfig)
+	postgresClient, err := postgres2.New(ctx, &cfg.DBConfig)
 	if err != nil {
-		log.Errorf("failed to create db client: %v", err)
+		log.Errorf("failed to create postgres client: %v", err)
 		return
 	}
+	encryptedPostgres := repository.New(encryptor, postgresClient)
+	hdWalletAdapter := bip32adapter.New()
 
-	dependencies := &handlers.BotDependencies{
-		Logger:    log.WithFields(logrus.Fields{}),
-		DB:        dbClient,
-		Encryptor: encryptor,
+	accountService := account.New(log, hdWalletAdapter, encryptedPostgres)
+
+	services := &telegram.BotServices{
+		Logger:         log,
+		AccountService: accountService,
 	}
-	handlers.RegisterBotHandlers(bot, dependencies)
+	telegram.RegisterBotHandlers(bot, services)
 
 	go bot.Start()
 
@@ -74,7 +99,7 @@ func main() {
 
 	stop()
 	log.Infoln("shutting down gracefully")
-	if err = dbClient.Close(); err != nil {
+	if err = postgresClient.Close(); err != nil {
 		log.Errorf("failed to close connection to database: %v", err)
 	} else {
 		log.Info("connection to database closed")

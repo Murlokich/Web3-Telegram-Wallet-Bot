@@ -1,7 +1,8 @@
-package encryption_test
+package aes_test
 
 import (
 	"Web3-Telegram-Wallet-Bot/internal/encryption"
+	"Web3-Telegram-Wallet-Bot/internal/encryption/aes"
 	"crypto/rand"
 	"encoding/base64"
 	"strconv"
@@ -18,7 +19,7 @@ func TestEncryptDecrypt_RoundTrip(t *testing.T) {
 	bytes := make([]byte, 32)
 	_, err := rand.Read(bytes)
 	require.NoError(t, err)
-	encryptor, err := encryption.NewEncryptor(base64.StdEncoding.EncodeToString(bytes))
+	encryptor, err := aes.New(base64.StdEncoding.EncodeToString(bytes))
 	require.NoError(t, err)
 	for step := range cycles {
 		t.Run(strconv.Itoa(step), func(t *testing.T) {
@@ -43,7 +44,7 @@ func TestEncryptDecrypt_SameText(t *testing.T) {
 	bytes := make([]byte, 32)
 	_, err := rand.Read(bytes)
 	require.NoError(t, err)
-	encryptor, err := encryption.NewEncryptor(base64.StdEncoding.EncodeToString(bytes))
+	encryptor, err := aes.New(base64.StdEncoding.EncodeToString(bytes))
 	require.NoError(t, err)
 	msg := make([]byte, 82)
 	entry1, err := encryptor.Encrypt(msg)
@@ -64,7 +65,7 @@ func TestEncryptDecrypt_Corruption(t *testing.T) {
 	bytes := make([]byte, 32)
 	_, err := rand.Read(bytes)
 	require.NoError(t, err)
-	encryptor, err := encryption.NewEncryptor(base64.StdEncoding.EncodeToString(bytes))
+	encryptor, err := aes.New(base64.StdEncoding.EncodeToString(bytes))
 	require.NoError(t, err)
 	msg := make([]byte, 82)
 	entry1, err := encryptor.Encrypt(msg)
