@@ -1,37 +1,33 @@
 # Web3-Telegram-Wallet-Bot
-Web3 Telegram Wallet Bot is a project that services as platform for trading new currency based on Ethereum platform through Telegram Bot
+Web3 Telegram Wallet Bot is a project that services as a custodial hot crypto wallet for ETH through telegram Bot.
 
 ## Functionality
 * Create new or import existing ETH wallet
 * Execute the transactions
-* View 
+* Provide comfortable UI 
 
 ## Technology stack
 * Telegram API: [telebot](https://github.com/tucnak/telebot)
+* PostgreSQL: [pgx](https://github.com/jackc/pgx)
 * Ethereum API: [go-ethereum](https://github.com/ethereum/go-ethereum)
 
 ## Node
-* Full Node using [geth](https://geth.ethereum.org/docs/fundamentals/command-line-options) - 1TB disk free space
-* Pruned Node using [geth](https://geth.ethereum.org/docs/fundamentals/command-line-options) - 100GB disk free space
-* Remote Node using [infura](https://www.infura.io/) or [alchemy](https://www.alchemy.com/) - 0GB disk free space
+Due to the lack of free disk space both full (1TB disk space) and pruned (100GB disk space) nodes were not considered as an option,
+so for this project infura API was used:
+* Remote Node using [infura](https://www.infura.io/) - 0GB disk free space
+
+As an alternative could have used [alchemy](https://www.alchemy.com/)
 
 ## Roadmap
 1) Telegram API integration:
     * Bot responding with "hello" to slash command
-2) Node installation
-   * Analysis of node implementation
-   * Setting up the solution
-3) Main functionality for ETH
-   * Account creation
+2) Main functionality for ETH
+   * Account creation/migration
+   * Account management
    * Asset transfer
-4) Creation of my own currency
-   * Overall analysis of API + required stuff
-   * Smart contracts implementation 
-   * Other stuff
-5) Reworking ETH solution to my own currency
-6) Visualisation of the account, transfers, statistics, coin price
+3) Visualisation of the account, transfers, statistics, coin prices
 
 ## Functionality:
-* gasPrice
-* feeHistory
-* getBalance
+* /register - creates a new wallet with mnemonic
+* /migrate \<mnemonic\> - allows to import existing wallet via mnemonic
+* /new_address - creates new address for existing account
