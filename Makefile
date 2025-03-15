@@ -16,3 +16,14 @@ test: ## Run tests and display coverage
 lint: ## Run linters
 	@golangci-lint run -v --timeout=5m ./...
 
+infra-up: ## Run infra
+	@docker compose up db -d
+
+rebuild-up: ## Rebuild the image and run the application
+	@docker compose up -d --build
+
+up: ## Run the application
+	@docker compose up -d
+
+down: ## Stop the application and infra
+	@docker compose down
