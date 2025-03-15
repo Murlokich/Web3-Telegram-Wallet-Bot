@@ -1,4 +1,10 @@
 services:
+  wallet:
+    build:
+      context: .
+    env_file: dev/docker.env
+    restart: unless-stopped
+
   db:
     image: postgres
     restart: unless-stopped
