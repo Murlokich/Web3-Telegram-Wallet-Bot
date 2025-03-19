@@ -1,6 +1,8 @@
 package encryption
 
+import "context"
+
 type Encryptor interface {
-	Encrypt(plaintextBytes []byte) (*EncryptedEntry, error)
-	Decrypt(entry *EncryptedEntry) ([]byte, error)
+	Encrypt(ctx context.Context, plaintextBytes []byte) (*EncryptedEntry, error)
+	Decrypt(ctx context.Context, entry *EncryptedEntry) ([]byte, error)
 }

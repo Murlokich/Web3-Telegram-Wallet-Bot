@@ -10,6 +10,8 @@ import (
 
 const (
 	insertWalletAffectedRows = 1
+
+	insertWalletSpanName = "InsertWallet"
 )
 
 type InsertAnomalyError struct {
@@ -23,14 +25,20 @@ func (e *InsertAnomalyError) Error() string {
 }
 
 func (c *Client) InsertWallet(ctx context.Context, record *repository.WalletEncryptedRecord) error {
+	ctx, span := c.tracer.Start(ctx, insertWalletSpanName)
+	defer span.End()
 	query := "INSERT INTO user_wallet VALUES ($1, $2, $3, $4, $5, $6)"
 	tag, err := c.conn.Exec(ctx, query, record.UserID, record.MasterKey.Ciphertext, record.MasterKey.Nonce,
 		record.ChangeLevelKey.Ciphertext, record.ChangeLevelKey.Nonce, record.LastAddressIndex)
 	if err != nil {
-		return errors.Wrap(err, "failed to execute query")
+		err = errors.Wrap(err, "failed to execute query")
+		span.RecordError(err)
+		return err
 	}
 	if !tag.Insert() || tag.RowsAffected() != insertWalletAffectedRows {
-		return &InsertAnomalyError{Insert: tag.Insert(), RowsAffected: tag.RowsAffected()}
+		err = &InsertAnomalyError{Insert: tag.Insert(), RowsAffected: tag.RowsAffected()}
+		span.RecordError(err)
+		return err
 	}
 	return nil
 }

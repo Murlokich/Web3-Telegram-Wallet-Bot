@@ -7,7 +7,14 @@ import (
 	"github.com/pkg/errors"
 )
 
+const (
+	addNewAddressSpanName     = "AddNewAddress"
+	getChangeLevelKeySpanName = "GetChangeLevelKey"
+)
+
 func (c *Client) AddNewAddress(ctx context.Context, userID int64) (*repository.AddressManagementEncryptedData, error) {
+	ctx, span := c.tracer.Start(ctx, addNewAddressSpanName)
+	defer span.End()
 	query := `
 		UPDATE user_wallet SET last_address_index = last_address_index + 1
 		WHERE user_id = $1 RETURNING change_level_key, clk_nonce, last_address_index
@@ -17,13 +24,17 @@ func (c *Client) AddNewAddress(ctx context.Context, userID int64) (*repository.A
 		&res.ChangeLevelKey.Ciphertext,
 		&res.ChangeLevelKey.Nonce,
 		&res.LastAddressIndex); err != nil {
-		return nil, errors.Wrap(err, "failed to query row")
+		err = errors.Wrap(err, "failed to query row")
+		span.RecordError(err)
+		return nil, err
 	}
 	return &res, nil
 }
 
 func (c *Client) GetChangeLevelKey(
 	ctx context.Context, userID int64) (*repository.AddressManagementEncryptedData, error) {
+	ctx, span := c.tracer.Start(ctx, getChangeLevelKeySpanName)
+	defer span.End()
 	query := `
 		SELECT change_level_key, clk_nonce, last_address_index 
 		FROM user_wallet
@@ -33,7 +44,9 @@ func (c *Client) GetChangeLevelKey(
 		&res.ChangeLevelKey.Ciphertext,
 		&res.ChangeLevelKey.Nonce,
 		&res.LastAddressIndex); err != nil {
-		return nil, errors.Wrap(err, "failed to query row")
+		err = errors.Wrap(err, "failed to query row")
+		span.RecordError(err)
+		return nil, err
 	}
 	return &res, nil
 }

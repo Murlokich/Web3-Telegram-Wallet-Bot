@@ -4,6 +4,7 @@ type Config struct {
 	TelegramBotConfig TelegramBotConfig
 	DBConfig          DBConfig
 	Encryption        Encryption
+	Tracing           Tracing
 }
 
 type TelegramBotConfig struct {
@@ -22,4 +23,8 @@ type Encryption struct {
 
 type Infura struct {
 	Endpoint string `envconfig:"INFURA_ENDPOINT" required:"true"`
+}
+
+type Tracing struct {
+	Endpoint string `envconfig:"TRACING_ENDPOINT" required:"true"`
 }

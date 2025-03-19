@@ -3,13 +3,14 @@ package repository
 import (
 	"Web3-Telegram-Wallet-Bot/internal/domain"
 	"Web3-Telegram-Wallet-Bot/internal/encryption"
+	"context"
 
 	"github.com/pkg/errors"
 )
 
-func AddressManagementEncryptedDataFromDomain(
+func AddressManagementEncryptedDataFromDomain(ctx context.Context,
 	data *domain.AddressManagementData, encryptor encryption.Encryptor) (*AddressManagementEncryptedData, error) {
-	clkEntry, err := encryptor.Encrypt(data.ChangeLevelKey)
+	clkEntry, err := encryptor.Encrypt(ctx, data.ChangeLevelKey)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to encrypt change level key")
 	}
@@ -23,13 +24,13 @@ type WalletEncryptedRecord struct {
 	LastAddressIndex uint32
 }
 
-func WalletEncryptedRecordFromDomain(
+func WalletEncryptedRecordFromDomain(ctx context.Context,
 	wallet *domain.HDWallet, encryptor encryption.Encryptor) (*WalletEncryptedRecord, error) {
-	mkEntry, err := encryptor.Encrypt(wallet.MasterKey)
+	mkEntry, err := encryptor.Encrypt(ctx, wallet.MasterKey)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to encrypt master key")
 	}
-	clkEntry, err := encryptor.Encrypt(wallet.AddressManagementData.ChangeLevelKey)
+	clkEntry, err := encryptor.Encrypt(ctx, wallet.AddressManagementData.ChangeLevelKey)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to encrypt change level key")
 	}
@@ -46,12 +47,12 @@ type AddressManagementEncryptedData struct {
 	LastAddressIndex uint32
 }
 
-func (r *WalletEncryptedRecord) Decrypt(encryptor encryption.Encryptor) (*domain.HDWallet, error) {
-	mk, err := encryptor.Decrypt(r.MasterKey)
+func (r *WalletEncryptedRecord) Decrypt(ctx context.Context, encryptor encryption.Encryptor) (*domain.HDWallet, error) {
+	mk, err := encryptor.Decrypt(ctx, r.MasterKey)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to decrypt master key")
 	}
-	clk, err := encryptor.Decrypt(r.ChangeLevelKey)
+	clk, err := encryptor.Decrypt(ctx, r.ChangeLevelKey)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to decrypt change level key")
 	}
@@ -59,9 +60,9 @@ func (r *WalletEncryptedRecord) Decrypt(encryptor encryption.Encryptor) (*domain
 		AddressManagementData: &domain.AddressManagementData{ChangeLevelKey: clk, LastAddressIndex: r.LastAddressIndex}}, nil
 }
 
-func (r *AddressManagementEncryptedData) Decrypt(
+func (r *AddressManagementEncryptedData) Decrypt(ctx context.Context,
 	encryptor encryption.Encryptor) (*domain.AddressManagementData, error) {
-	clk, err := encryptor.Decrypt(&r.ChangeLevelKey)
+	clk, err := encryptor.Decrypt(ctx, &r.ChangeLevelKey)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to decrypt change level key")
 	}

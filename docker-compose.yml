@@ -15,6 +15,14 @@ services:
     ports:
       - "5432:5432"
 
+  jaeger:
+    image: jaegertracing/all-in-one
+    environment:
+      COLLECTOR_ZIPKIN_HOST_PORT: 9411
+    ports:
+      - "16686:16686"
+      - "4318:4318"
+
 #  vault:
 #    image: hashicorp/vault
 #    restart: unless-stopped
