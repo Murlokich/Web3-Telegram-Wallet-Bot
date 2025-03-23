@@ -9,4 +9,5 @@ func RegisterBotHandlers(bot *telebot.Bot, dependencies *BotServices) {
 	bot.Handle("/register", dependencies.WrapHandler(CreateAccount))
 	bot.Handle("/new_address", dependencies.WrapHandler(AddNewAddress))
 	bot.Handle("/migrate", dependencies.WrapHandler(MigrateAccount))
+	bot.Handle("/getBalance", dependencies.WrapHandler(GetBalance))
 }

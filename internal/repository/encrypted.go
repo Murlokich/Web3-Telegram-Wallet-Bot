@@ -4,6 +4,7 @@ import (
 	"Web3-Telegram-Wallet-Bot/internal/domain"
 	"Web3-Telegram-Wallet-Bot/internal/encryption"
 	"context"
+
 	"go.opentelemetry.io/otel/trace"
 
 	"github.com/pkg/errors"

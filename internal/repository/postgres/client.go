@@ -3,6 +3,7 @@ package postgres
 import (
 	"Web3-Telegram-Wallet-Bot/internal/config"
 	"context"
+
 	"go.opentelemetry.io/otel/trace"
 
 	"github.com/jackc/pgx/v5"

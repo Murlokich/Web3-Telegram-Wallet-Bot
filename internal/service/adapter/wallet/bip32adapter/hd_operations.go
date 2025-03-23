@@ -5,10 +5,11 @@ import (
 	"context"
 	"crypto/ecdsa"
 	"encoding/hex"
-	"go.opentelemetry.io/otel/trace"
 	"strconv"
 	"strings"
 	"unicode"
+
+	"go.opentelemetry.io/otel/trace"
 
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/pkg/errors"
@@ -64,8 +65,9 @@ func (a *BIP32Adapter) GenerateHDWallet(ctx context.Context, userID int64) (*dom
 	return wlt, mnemonic, nil
 }
 
-func (a *BIP32Adapter) DeriveWalletFromMnemonic(ctx context.Context, mnemonic string, userID int64) (*domain.HDWallet, error) {
-	ctx, span := a.tracer.Start(ctx, deriveWalletFromMnemonicSpanName)
+func (a *BIP32Adapter) DeriveWalletFromMnemonic(
+	ctx context.Context, mnemonic string, userID int64) (*domain.HDWallet, error) {
+	_, span := a.tracer.Start(ctx, deriveWalletFromMnemonicSpanName)
 	defer span.End()
 	masterKey, err := a.deriveMasterKey(mnemonic)
 	if err != nil {
@@ -130,8 +132,9 @@ func (a *BIP32Adapter) deriveChangeLevelKey(masterKey *bip32.Key) (*bip32.Key, e
 	return currentKey, nil
 }
 
-func (a *BIP32Adapter) GetAddress(ctx context.Context, changeLevelKeyBytes []byte, addressIndex uint32) (string, error) {
-	ctx, span := a.tracer.Start(ctx, getAddressSpanName)
+func (a *BIP32Adapter) GetAddress(
+	ctx context.Context, changeLevelKeyBytes []byte, addressIndex uint32) (string, error) {
+	_, span := a.tracer.Start(ctx, getAddressSpanName)
 	defer span.End()
 	changeLevelKey, err := bip32.Deserialize(changeLevelKeyBytes)
 	if err != nil {

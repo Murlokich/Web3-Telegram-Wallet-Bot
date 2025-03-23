@@ -4,6 +4,7 @@ type Config struct {
 	TelegramBotConfig TelegramBotConfig
 	DBConfig          DBConfig
 	Encryption        Encryption
+	Infura            Infura
 	Tracing           Tracing
 }
 

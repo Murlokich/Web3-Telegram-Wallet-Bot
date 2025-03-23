@@ -7,6 +7,7 @@ import (
 	"Web3-Telegram-Wallet-Bot/internal/repository"
 	postgres2 "Web3-Telegram-Wallet-Bot/internal/repository/postgres"
 	"Web3-Telegram-Wallet-Bot/internal/service/account"
+	"Web3-Telegram-Wallet-Bot/internal/service/adapter/eth/infura"
 	"Web3-Telegram-Wallet-Bot/internal/service/adapter/wallet/bip32adapter"
 	"Web3-Telegram-Wallet-Bot/internal/tracing"
 	"context"
@@ -25,10 +26,11 @@ import (
 )
 
 const (
-	encryptorTracerName      = "encryptor"
-	postgresTracerName       = "postgres"
-	bip32TracerName          = "bip32adapter"
-	accountServiceTracerName = "account-service"
+	encryptorTracerName         = "encryptor"
+	postgresTracerName          = "postgres"
+	encryptedPostgresTracerName = "encryptedPostgres"
+	bip32TracerName             = "bip32adapter"
+	accountServiceTracerName    = "account-service"
 )
 
 func runMigrations(dbConfig *config.DBConfig) error {
@@ -97,10 +99,13 @@ func main() {
 		log.Errorf("failed to create postgres client: %v", err)
 		return
 	}
-	encryptedPostgres := repository.New(tracerProvider.Tracer(encryptorTracerName), encryptor, postgresClient)
+	encryptedPostgres := repository.New(tracerProvider.Tracer(encryptedPostgresTracerName), encryptor, postgresClient)
 	hdWalletAdapter := bip32adapter.New(tracerProvider.Tracer(bip32TracerName))
+	ethProvider := infura.New(&cfg.Infura)
 
-	accountService := account.New(tracerProvider.Tracer(accountServiceTracerName), log, hdWalletAdapter, encryptedPostgres)
+	accountService := account.New(
+		log, hdWalletAdapter, encryptedPostgres, ethProvider, tracerProvider.Tracer(accountServiceTracerName),
+	)
 
 	services := &telegram.BotServices{
 		Logger:         log,

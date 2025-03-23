@@ -7,8 +7,9 @@ import (
 	"crypto/cipher"
 	"crypto/rand"
 	"encoding/base64"
-	"go.opentelemetry.io/otel/trace"
 	"io"
+
+	"go.opentelemetry.io/otel/trace"
 
 	"github.com/pkg/errors"
 )
@@ -40,7 +41,7 @@ func New(tracer trace.Tracer, masterKeyB64 string) (*Encryptor, error) {
 }
 
 func (e *Encryptor) Encrypt(ctx context.Context, plaintextBytes []byte) (*encryption.EncryptedEntry, error) {
-	ctx, span := e.tracer.Start(ctx, encryptSpanName)
+	_, span := e.tracer.Start(ctx, encryptSpanName)
 	defer span.End()
 	nonce := make([]byte, e.gcm.NonceSize())
 	if _, err := io.ReadFull(rand.Reader, nonce); err != nil {
@@ -57,7 +58,7 @@ func (e *Encryptor) Encrypt(ctx context.Context, plaintextBytes []byte) (*encryp
 }
 
 func (e *Encryptor) Decrypt(ctx context.Context, entry *encryption.EncryptedEntry) ([]byte, error) {
-	ctx, span := e.tracer.Start(ctx, decryptSpanName)
+	_, span := e.tracer.Start(ctx, decryptSpanName)
 	defer span.End()
 	decryptedBytes, err := e.gcm.Open(nil, entry.Nonce, entry.Ciphertext, nil)
 	if err != nil {

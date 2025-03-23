@@ -12,8 +12,6 @@ import (
 const (
 	invalidMnemonic      = "Mnemonic you have provided is invalid. Please check your input and try again."
 	internalErrorMessage = "Internal Server Error, please try again later"
-	invalidIndex         = "Index you have provided is invalid. Please check your input and try again."
-	initialAddressIndex  = 0
 )
 
 func Start(ctx telebot.Context) error {
@@ -48,5 +46,14 @@ func AddNewAddress(tgCtx telebot.Context, dependencies *BotServices) error {
 		return tgCtx.Send(internalErrorMessage)
 	}
 	message := fmt.Sprintf("Your new ETH address is: %s", address)
+	return tgCtx.Send(message)
+}
+
+func GetBalance(tgCtx telebot.Context, dependencies *BotServices) error {
+	ethBalance, err := dependencies.AccountService.GetBalance(context.Background(), tgCtx.Data())
+	if err != nil {
+		return tgCtx.Send(internalErrorMessage)
+	}
+	message := fmt.Sprintf("Balance for provided address is: %s ETH", ethBalance)
 	return tgCtx.Send(message)
 }
