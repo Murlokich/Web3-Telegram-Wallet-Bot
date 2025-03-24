@@ -25,14 +25,6 @@ import (
 	"gopkg.in/telebot.v4"
 )
 
-const (
-	encryptorTracerName         = "encryptor"
-	postgresTracerName          = "postgres"
-	encryptedPostgresTracerName = "encryptedPostgres"
-	bip32TracerName             = "bip32adapter"
-	accountServiceTracerName    = "account-service"
-)
-
 func runMigrations(dbConfig *config.DBConfig) error {
 	m, err := migrate.New("file://migrations", dbConfig.URL)
 	if err != nil {
@@ -88,23 +80,23 @@ func main() {
 		return
 	}
 
-	encryptor, err := aes.New(tracerProvider.Tracer(encryptorTracerName), cfg.Encryption.MasterKey)
+	encryptor, err := aes.New(tracerProvider.Tracer("encryptor"), cfg.Encryption.MasterKey)
 	if err != nil {
 		log.Errorf("failed to create encryptor: %v", err)
 		return
 	}
 
-	postgresClient, err := postgres2.New(ctx, tracerProvider.Tracer(postgresTracerName), &cfg.DBConfig)
+	postgresClient, err := postgres2.New(ctx, tracerProvider.Tracer("postgres"), &cfg.DBConfig)
 	if err != nil {
 		log.Errorf("failed to create postgres client: %v", err)
 		return
 	}
-	encryptedPostgres := repository.New(tracerProvider.Tracer(encryptedPostgresTracerName), encryptor, postgresClient)
-	hdWalletAdapter := bip32adapter.New(tracerProvider.Tracer(bip32TracerName))
+	encryptedPostgres := repository.New(tracerProvider.Tracer("encryptedPostgres"), encryptor, postgresClient)
+	hdWalletAdapter := bip32adapter.New(tracerProvider.Tracer("bip32adapter"))
 	ethProvider := infura.New(&cfg.Infura)
 
 	accountService := account.New(
-		log, hdWalletAdapter, encryptedPostgres, ethProvider, tracerProvider.Tracer(accountServiceTracerName),
+		log, hdWalletAdapter, encryptedPostgres, ethProvider, tracerProvider.Tracer("account-service"),
 	)
 
 	services := &telegram.BotServices{

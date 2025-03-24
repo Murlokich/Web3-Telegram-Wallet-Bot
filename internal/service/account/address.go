@@ -5,12 +5,8 @@ import (
 	"context"
 )
 
-const (
-	addNewAddressSpanName = "AddNewAddress"
-)
-
 func (s *Service) AddNewAddress(ctx context.Context, userID int64) (string, error) {
-	ctx, span := s.tracer.Start(ctx, addNewAddressSpanName)
+	ctx, span := s.tracer.Start(ctx, "AddNewAddress")
 	defer span.End()
 	s.Logger.Info("Creating Address")
 	res, err := s.DB.AddNewAddress(ctx, userID)

@@ -7,13 +7,8 @@ import (
 	"github.com/pkg/errors"
 )
 
-const (
-	addNewAddressSpanName     = "AddNewAddress"
-	getChangeLevelKeySpanName = "GetChangeLevelKey"
-)
-
 func (c *Client) AddNewAddress(ctx context.Context, userID int64) (*repository.AddressManagementEncryptedData, error) {
-	ctx, span := c.tracer.Start(ctx, addNewAddressSpanName)
+	ctx, span := c.tracer.Start(ctx, "AddNewAddress")
 	defer span.End()
 	query := `
 		UPDATE user_wallet SET last_address_index = last_address_index + 1
@@ -33,7 +28,7 @@ func (c *Client) AddNewAddress(ctx context.Context, userID int64) (*repository.A
 
 func (c *Client) GetChangeLevelKey(
 	ctx context.Context, userID int64) (*repository.AddressManagementEncryptedData, error) {
-	ctx, span := c.tracer.Start(ctx, getChangeLevelKeySpanName)
+	ctx, span := c.tracer.Start(ctx, "GetChangeLevelKey")
 	defer span.End()
 	query := `
 		SELECT change_level_key, clk_nonce, last_address_index 

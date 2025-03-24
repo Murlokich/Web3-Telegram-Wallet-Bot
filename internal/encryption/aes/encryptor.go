@@ -14,11 +14,6 @@ import (
 	"github.com/pkg/errors"
 )
 
-const (
-	encryptSpanName = "encrypt"
-	decryptSpanName = "decrypt"
-)
-
 type Encryptor struct {
 	gcm    cipher.AEAD
 	tracer trace.Tracer
@@ -41,7 +36,7 @@ func New(tracer trace.Tracer, masterKeyB64 string) (*Encryptor, error) {
 }
 
 func (e *Encryptor) Encrypt(ctx context.Context, plaintextBytes []byte) (*encryption.EncryptedEntry, error) {
-	_, span := e.tracer.Start(ctx, encryptSpanName)
+	_, span := e.tracer.Start(ctx, "encrypt")
 	defer span.End()
 	nonce := make([]byte, e.gcm.NonceSize())
 	if _, err := io.ReadFull(rand.Reader, nonce); err != nil {
@@ -58,7 +53,7 @@ func (e *Encryptor) Encrypt(ctx context.Context, plaintextBytes []byte) (*encryp
 }
 
 func (e *Encryptor) Decrypt(ctx context.Context, entry *encryption.EncryptedEntry) ([]byte, error) {
-	_, span := e.tracer.Start(ctx, decryptSpanName)
+	_, span := e.tracer.Start(ctx, "decrypt")
 	defer span.End()
 	decryptedBytes, err := e.gcm.Open(nil, entry.Nonce, entry.Ciphertext, nil)
 	if err != nil {

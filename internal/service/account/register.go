@@ -10,9 +10,6 @@ import (
 
 const (
 	initialAddressIndex = 0
-
-	createAccountSpanName  = "CreateAccount"
-	migrateAccountSpanName = "MigrateAccount"
 )
 
 var (
@@ -20,7 +17,7 @@ var (
 )
 
 func (s *Service) CreateAccount(ctx context.Context, userID int64) (string, string, error) {
-	ctx, span := s.tracer.Start(ctx, createAccountSpanName)
+	ctx, span := s.tracer.Start(ctx, "CreateAccount")
 	defer span.End()
 	s.Logger.Info("Creating Account")
 	wlt, mnemonic, err := s.HDWallet.GenerateHDWallet(ctx, userID)
@@ -44,7 +41,7 @@ func (s *Service) CreateAccount(ctx context.Context, userID int64) (string, stri
 }
 
 func (s *Service) MigrateAccount(ctx context.Context, mnemonic string, userID int64) (string, error) {
-	ctx, span := s.tracer.Start(ctx, migrateAccountSpanName)
+	ctx, span := s.tracer.Start(ctx, "MigrateAccount")
 	defer span.End()
 	s.Logger.Info("Migrating Account")
 	if !bip39.IsMnemonicValid(mnemonic) {

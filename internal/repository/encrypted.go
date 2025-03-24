@@ -10,12 +10,6 @@ import (
 	"github.com/pkg/errors"
 )
 
-const (
-	addNewAddressSpanName     = "AddNewAddress"
-	getChangeLevelKeySpanName = "ChangeLevelKey"
-	insertWalletSpanName      = "InsertWallet"
-)
-
 type EncryptedPostgres struct {
 	encryptor encryption.Encryptor
 	postgres  repository
@@ -27,7 +21,7 @@ func New(tracer trace.Tracer, encryptor encryption.Encryptor, postgres repositor
 }
 
 func (ep *EncryptedPostgres) AddNewAddress(ctx context.Context, userID int64) (*domain.AddressManagementData, error) {
-	ctx, span := ep.tracer.Start(ctx, addNewAddressSpanName)
+	ctx, span := ep.tracer.Start(ctx, "AddNewAddress")
 	defer span.End()
 	resEncrypted, err := ep.postgres.AddNewAddress(ctx, userID)
 	if err != nil {
@@ -46,7 +40,7 @@ func (ep *EncryptedPostgres) AddNewAddress(ctx context.Context, userID int64) (*
 
 func (ep *EncryptedPostgres) GetChangeLevelKey(
 	ctx context.Context, userID int64) (*domain.AddressManagementData, error) {
-	ctx, span := ep.tracer.Start(ctx, getChangeLevelKeySpanName)
+	ctx, span := ep.tracer.Start(ctx, "ChangeLevelKey")
 	defer span.End()
 	resEncrypted, err := ep.postgres.GetChangeLevelKey(ctx, userID)
 	if err != nil {
@@ -63,7 +57,7 @@ func (ep *EncryptedPostgres) GetChangeLevelKey(
 	return res, nil
 }
 func (ep *EncryptedPostgres) InsertWallet(ctx context.Context, wallet *domain.HDWallet) error {
-	ctx, span := ep.tracer.Start(ctx, insertWalletSpanName)
+	ctx, span := ep.tracer.Start(ctx, "InsertWallet")
 	defer span.End()
 	recordEncrypted, err := WalletEncryptedRecordFromDomain(ctx, wallet, ep.encryptor)
 	if err != nil {

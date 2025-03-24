@@ -21,10 +21,6 @@ import (
 const (
 	hardenedLevelStart = 2147483648 // 2**31 for hardened levels
 	entropyBitSize     = 128        // for mnemonic of 12 words
-
-	generateHDWalletSpanName         = "GenerateHDWallet"
-	deriveWalletFromMnemonicSpanName = "DeriveWalletFromMnemonic"
-	getAddressSpanName               = "GetAddress"
 )
 
 var (
@@ -40,7 +36,7 @@ func New(tracer trace.Tracer) *BIP32Adapter {
 }
 
 func (a *BIP32Adapter) GenerateHDWallet(ctx context.Context, userID int64) (*domain.HDWallet, string, error) {
-	ctx, span := a.tracer.Start(ctx, generateHDWalletSpanName)
+	ctx, span := a.tracer.Start(ctx, "GenerateHDWallet")
 	defer span.End()
 	var mnemonic string
 	var wlt *domain.HDWallet
@@ -67,7 +63,7 @@ func (a *BIP32Adapter) GenerateHDWallet(ctx context.Context, userID int64) (*dom
 
 func (a *BIP32Adapter) DeriveWalletFromMnemonic(
 	ctx context.Context, mnemonic string, userID int64) (*domain.HDWallet, error) {
-	_, span := a.tracer.Start(ctx, deriveWalletFromMnemonicSpanName)
+	_, span := a.tracer.Start(ctx, "DeriveWalletFromMnemonic")
 	defer span.End()
 	masterKey, err := a.deriveMasterKey(mnemonic)
 	if err != nil {
@@ -134,7 +130,7 @@ func (a *BIP32Adapter) deriveChangeLevelKey(masterKey *bip32.Key) (*bip32.Key, e
 
 func (a *BIP32Adapter) GetAddress(
 	ctx context.Context, changeLevelKeyBytes []byte, addressIndex uint32) (string, error) {
-	_, span := a.tracer.Start(ctx, getAddressSpanName)
+	_, span := a.tracer.Start(ctx, "GetAddress")
 	defer span.End()
 	changeLevelKey, err := bip32.Deserialize(changeLevelKeyBytes)
 	if err != nil {
