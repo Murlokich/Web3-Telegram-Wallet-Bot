@@ -13,8 +13,9 @@ type HDWallet struct {
 }
 
 type AddressManagementData struct {
-	ChangeLevelKey   []byte
-	LastAddressIndex uint32
+	ChangeLevelKey      []byte
+	CurrentAddressIndex uint32
+	LastAddressIndex    uint32
 }
 
 func (d *AddressManagementData) ValidateAddressIndex(index uint32) error {

@@ -14,14 +14,19 @@ func AddressManagementEncryptedDataFromDomain(ctx context.Context,
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to encrypt change level key")
 	}
-	return &AddressManagementEncryptedData{ChangeLevelKey: *clkEntry, LastAddressIndex: data.LastAddressIndex}, nil
+	return &AddressManagementEncryptedData{
+		ChangeLevelKey:      *clkEntry,
+		CurrentAddressIndex: data.CurrentAddressIndex,
+		LastAddressIndex:    data.LastAddressIndex,
+	}, nil
 }
 
 type WalletEncryptedRecord struct {
-	UserID           int64
-	MasterKey        *encryption.EncryptedEntry
-	ChangeLevelKey   *encryption.EncryptedEntry
-	LastAddressIndex uint32
+	UserID              int64
+	MasterKey           *encryption.EncryptedEntry
+	ChangeLevelKey      *encryption.EncryptedEntry
+	CurrentAddressIndex uint32
+	LastAddressIndex    uint32
 }
 
 func WalletEncryptedRecordFromDomain(ctx context.Context,
@@ -35,16 +40,18 @@ func WalletEncryptedRecordFromDomain(ctx context.Context,
 		return nil, errors.Wrap(err, "failed to encrypt change level key")
 	}
 	return &WalletEncryptedRecord{
-		UserID:           wallet.UserID,
-		MasterKey:        mkEntry,
-		ChangeLevelKey:   clkEntry,
-		LastAddressIndex: wallet.AddressManagementData.LastAddressIndex,
+		UserID:              wallet.UserID,
+		MasterKey:           mkEntry,
+		ChangeLevelKey:      clkEntry,
+		CurrentAddressIndex: wallet.AddressManagementData.CurrentAddressIndex,
+		LastAddressIndex:    wallet.AddressManagementData.LastAddressIndex,
 	}, nil
 }
 
 type AddressManagementEncryptedData struct {
-	ChangeLevelKey   encryption.EncryptedEntry
-	LastAddressIndex uint32
+	ChangeLevelKey      encryption.EncryptedEntry
+	CurrentAddressIndex uint32
+	LastAddressIndex    uint32
 }
 
 func (r *WalletEncryptedRecord) Decrypt(ctx context.Context, encryptor encryption.Encryptor) (*domain.HDWallet, error) {
@@ -57,7 +64,11 @@ func (r *WalletEncryptedRecord) Decrypt(ctx context.Context, encryptor encryptio
 		return nil, errors.Wrap(err, "failed to decrypt change level key")
 	}
 	return &domain.HDWallet{UserID: r.UserID, MasterKey: mk,
-		AddressManagementData: &domain.AddressManagementData{ChangeLevelKey: clk, LastAddressIndex: r.LastAddressIndex}}, nil
+		AddressManagementData: &domain.AddressManagementData{
+			ChangeLevelKey:      clk,
+			CurrentAddressIndex: r.CurrentAddressIndex,
+			LastAddressIndex:    r.LastAddressIndex,
+		}}, nil
 }
 
 func (r *AddressManagementEncryptedData) Decrypt(ctx context.Context,
@@ -66,5 +77,9 @@ func (r *AddressManagementEncryptedData) Decrypt(ctx context.Context,
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to decrypt change level key")
 	}
-	return &domain.AddressManagementData{ChangeLevelKey: clk, LastAddressIndex: r.LastAddressIndex}, nil
+	return &domain.AddressManagementData{
+		ChangeLevelKey:      clk,
+		CurrentAddressIndex: r.CurrentAddressIndex,
+		LastAddressIndex:    r.LastAddressIndex,
+	}, nil
 }

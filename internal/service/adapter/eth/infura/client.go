@@ -13,6 +13,6 @@ type Client struct {
 	tracer     trace.Tracer
 }
 
-func New(cfg *config.Infura) *Client {
-	return &Client{httpClient: http.DefaultClient, endpoint: cfg.Endpoint}
+func New(cfg *config.Infura, tracer trace.Tracer) *Client {
+	return &Client{httpClient: http.DefaultClient, endpoint: cfg.Endpoint, tracer: tracer}
 }

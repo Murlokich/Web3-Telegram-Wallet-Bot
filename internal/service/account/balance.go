@@ -13,9 +13,23 @@ const (
 	ethFloatPrecision  = 8
 )
 
-func (s *Service) GetBalance(ctx context.Context, address string) (string, error) {
+func (s *Service) GetBalance(ctx context.Context, userID int64) (string, error) {
 	ctx, span := s.tracer.Start(ctx, "GetBalance")
 	defer span.End()
+
+	data, err := s.DB.GetChangeLevelKey(ctx, userID)
+	if err != nil {
+		err = errors.Wrap(err, "failed to get current address")
+		span.RecordError(err)
+		return "", err
+	}
+
+	address, err := s.HDWallet.GetAddress(ctx, data.ChangeLevelKey, data.CurrentAddressIndex)
+	if err != nil {
+		err = errors.Wrap(err, "failed to get current address")
+		span.RecordError(err)
+		return "", err
+	}
 
 	weiBalance, err := s.ETH.GetBalance(ctx, address)
 	if err != nil {

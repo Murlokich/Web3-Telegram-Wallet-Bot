@@ -72,3 +72,14 @@ func (ep *EncryptedPostgres) InsertWallet(ctx context.Context, wallet *domain.HD
 	}
 	return nil
 }
+
+func (ep *EncryptedPostgres) UpdateCurrentAddress(ctx context.Context, userID int64, addressIndex uint32) error {
+	ctx, span := ep.tracer.Start(ctx, "UpdateCurrentAddress")
+	defer span.End()
+	if err := ep.postgres.UpdateCurrentAddress(ctx, userID, addressIndex); err != nil {
+		err = errors.Wrap(err, "failed to update current address")
+		span.RecordError(err)
+		return err
+	}
+	return nil
+}

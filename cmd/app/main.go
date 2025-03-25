@@ -93,7 +93,7 @@ func main() {
 	}
 	encryptedPostgres := repository.New(tracerProvider.Tracer("encryptedPostgres"), encryptor, postgresClient)
 	hdWalletAdapter := bip32adapter.New(tracerProvider.Tracer("bip32adapter"))
-	ethProvider := infura.New(&cfg.Infura)
+	ethProvider := infura.New(&cfg.Infura, tracerProvider.Tracer("infura"))
 
 	accountService := account.New(
 		log, hdWalletAdapter, encryptedPostgres, ethProvider, tracerProvider.Tracer("account-service"),
