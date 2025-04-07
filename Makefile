@@ -17,7 +17,7 @@ lint: ## Run linters
 	@golangci-lint run -v --timeout=5m ./...
 
 infra-up: ## Run infra
-	@docker compose up db -d
+	@docker compose up db jaeger -d
 
 rebuild-up: ## Rebuild the image and run the application
 	@docker compose up -d --build

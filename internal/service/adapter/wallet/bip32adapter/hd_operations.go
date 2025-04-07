@@ -2,11 +2,14 @@ package bip32adapter
 
 import (
 	"Web3-Telegram-Wallet-Bot/internal/domain"
+	"context"
 	"crypto/ecdsa"
 	"encoding/hex"
 	"strconv"
 	"strings"
 	"unicode"
+
+	"go.opentelemetry.io/otel/trace"
 
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/pkg/errors"
@@ -24,48 +27,67 @@ var (
 	ErrPublicKeyConversion = errors.New("cannot convert key to public key")
 )
 
-type BIP32Adapter struct{}
-
-func New() *BIP32Adapter {
-	return &BIP32Adapter{}
+type BIP32Adapter struct {
+	tracer trace.Tracer
 }
 
-func (a *BIP32Adapter) GenerateHDWallet(userID int64) (*domain.HDWallet, string, error) {
+func New(tracer trace.Tracer) *BIP32Adapter {
+	return &BIP32Adapter{tracer: tracer}
+}
+
+func (a *BIP32Adapter) GenerateHDWallet(ctx context.Context, userID int64) (*domain.HDWallet, string, error) {
+	ctx, span := a.tracer.Start(ctx, "GenerateHDWallet")
+	defer span.End()
 	var mnemonic string
 	var wlt *domain.HDWallet
 	var err error
 	for {
 		mnemonic, err = a.generateMnemonic()
 		if err != nil {
-			return nil, "", errors.Wrap(err, "failed to generate mnemonic")
+			err = errors.Wrap(err, "failed to generate mnemonic")
+			span.RecordError(err)
+			return nil, "", err
 		}
-		wlt, err = a.DeriveWalletFromMnemonic(mnemonic, userID)
+		wlt, err = a.DeriveWalletFromMnemonic(ctx, mnemonic, userID)
 		if err == nil {
 			break
 		}
 		if !errors.Is(err, bip32.ErrInvalidPrivateKey) {
-			return nil, "", errors.Wrap(err, "failed to derive wallet")
+			err = errors.Wrap(err, "failed to derive wallet")
+			span.RecordError(err)
+			return nil, "", err
 		}
 	}
 	return wlt, mnemonic, nil
 }
 
-func (a *BIP32Adapter) DeriveWalletFromMnemonic(mnemonic string, userID int64) (*domain.HDWallet, error) {
+func (a *BIP32Adapter) DeriveWalletFromMnemonic(
+	ctx context.Context, mnemonic string, userID int64) (*domain.HDWallet, error) {
+	_, span := a.tracer.Start(ctx, "DeriveWalletFromMnemonic")
+	defer span.End()
 	masterKey, err := a.deriveMasterKey(mnemonic)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to derive master key")
+		err = errors.Wrap(err, "failed to derive master key")
+		span.RecordError(err)
+		return nil, err
 	}
 	changeLevelKey, err := a.deriveChangeLevelKey(masterKey)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to derive change level key")
+		err = errors.Wrap(err, "failed to derive change level key")
+		span.RecordError(err)
+		return nil, err
 	}
 	mkBytes, err := masterKey.Serialize()
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to serialize master key")
+		err = errors.Wrap(err, "failed to serialize master key")
+		span.RecordError(err)
+		return nil, err
 	}
 	clkBytes, err := changeLevelKey.Serialize()
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to serialize change level key")
+		err = errors.Wrap(err, "failed to serialize change level key")
+		span.RecordError(err)
+		return nil, err
 	}
 	return &domain.HDWallet{UserID: userID, MasterKey: mkBytes,
 		AddressManagementData: &domain.AddressManagementData{ChangeLevelKey: clkBytes}}, nil
@@ -106,23 +128,34 @@ func (a *BIP32Adapter) deriveChangeLevelKey(masterKey *bip32.Key) (*bip32.Key, e
 	return currentKey, nil
 }
 
-func (a *BIP32Adapter) GetAddress(changeLevelKeyBytes []byte, addressIndex uint32) (string, error) {
+func (a *BIP32Adapter) GetAddress(
+	ctx context.Context, changeLevelKeyBytes []byte, addressIndex uint32) (string, error) {
+	_, span := a.tracer.Start(ctx, "GetAddress")
+	defer span.End()
 	changeLevelKey, err := bip32.Deserialize(changeLevelKeyBytes)
 	if err != nil {
-		return "", errors.Wrap(err, "failed to deserialize change level key")
+		err = errors.Wrap(err, "failed to deserialize change level key")
+		span.RecordError(err)
+		return "", err
 	}
 	// Derive Address-Level Private Key `m/44'/60'/0'/0/0
 	addressLevelKey, err := changeLevelKey.NewChildKey(addressIndex)
 	if err != nil {
-		return "", errors.Wrap(err, "failed to get new child key")
+		err = errors.Wrap(err, "failed to get new child key")
+		span.RecordError(err)
+		return "", err
 	}
 	privateKey, err := crypto.ToECDSA(addressLevelKey.Key)
 	if err != nil {
-		return "", errors.Wrap(err, "failed to convert address to ECDSA")
+		err = errors.Wrap(err, "failed to convert address to ECDSA")
+		span.RecordError(err)
+		return "", err
 	}
 	publicKey, ok := privateKey.Public().(*ecdsa.PublicKey)
 	if !ok {
-		return "", ErrPublicKeyConversion
+		err = ErrPublicKeyConversion
+		span.RecordError(err)
+		return "", err
 	}
 	publicKeyBytes := append(publicKey.X.Bytes(), publicKey.Y.Bytes()...)
 	address := crypto.Keccak256(publicKeyBytes)[12:]

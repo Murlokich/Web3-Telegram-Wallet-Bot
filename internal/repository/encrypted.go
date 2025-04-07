@@ -5,49 +5,81 @@ import (
 	"Web3-Telegram-Wallet-Bot/internal/encryption"
 	"context"
 
+	"go.opentelemetry.io/otel/trace"
+
 	"github.com/pkg/errors"
 )
 
 type EncryptedPostgres struct {
 	encryptor encryption.Encryptor
 	postgres  repository
+	tracer    trace.Tracer
 }
 
-func New(encryptor encryption.Encryptor, postgres repository) *EncryptedPostgres {
-	return &EncryptedPostgres{encryptor: encryptor, postgres: postgres}
+func New(tracer trace.Tracer, encryptor encryption.Encryptor, postgres repository) *EncryptedPostgres {
+	return &EncryptedPostgres{encryptor: encryptor, postgres: postgres, tracer: tracer}
 }
 
 func (ep *EncryptedPostgres) AddNewAddress(ctx context.Context, userID int64) (*domain.AddressManagementData, error) {
+	ctx, span := ep.tracer.Start(ctx, "AddNewAddress")
+	defer span.End()
 	resEncrypted, err := ep.postgres.AddNewAddress(ctx, userID)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to add new address to postgres")
+		err = errors.Wrap(err, "failed to add new address to postgres")
+		span.RecordError(err)
+		return nil, err
 	}
-	res, err := resEncrypted.Decrypt(ep.encryptor)
+	res, err := resEncrypted.Decrypt(ctx, ep.encryptor)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to decrypt result")
+		err = errors.Wrap(err, "failed to decrypt result")
+		span.RecordError(err)
+		return nil, err
 	}
 	return res, nil
 }
 
 func (ep *EncryptedPostgres) GetChangeLevelKey(
 	ctx context.Context, userID int64) (*domain.AddressManagementData, error) {
+	ctx, span := ep.tracer.Start(ctx, "ChangeLevelKey")
+	defer span.End()
 	resEncrypted, err := ep.postgres.GetChangeLevelKey(ctx, userID)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to get change level key from postgres")
+		err = errors.Wrap(err, "failed to get change level key from postgres")
+		span.RecordError(err)
+		return nil, err
 	}
-	res, err := resEncrypted.Decrypt(ep.encryptor)
+	res, err := resEncrypted.Decrypt(ctx, ep.encryptor)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to decrypt result")
+		err = errors.Wrap(err, "failed to decrypt result")
+		span.RecordError(err)
+		return nil, err
 	}
 	return res, nil
 }
 func (ep *EncryptedPostgres) InsertWallet(ctx context.Context, wallet *domain.HDWallet) error {
-	recordEncrypted, err := WalletEncryptedRecordFromDomain(wallet, ep.encryptor)
+	ctx, span := ep.tracer.Start(ctx, "InsertWallet")
+	defer span.End()
+	recordEncrypted, err := WalletEncryptedRecordFromDomain(ctx, wallet, ep.encryptor)
 	if err != nil {
-		return errors.Wrap(err, "failed to encrypt record")
+		err = errors.Wrap(err, "failed to encrypt record")
+		span.RecordError(err)
+		return err
 	}
 	if err = ep.postgres.InsertWallet(ctx, recordEncrypted); err != nil {
-		return errors.Wrap(err, "failed to insert wallet to postgres")
+		err = errors.Wrap(err, "failed to insert wallet to postgres")
+		span.RecordError(err)
+		return err
+	}
+	return nil
+}
+
+func (ep *EncryptedPostgres) UpdateCurrentAddress(ctx context.Context, userID int64, addressIndex uint32) error {
+	ctx, span := ep.tracer.Start(ctx, "UpdateCurrentAddress")
+	defer span.End()
+	if err := ep.postgres.UpdateCurrentAddress(ctx, userID, addressIndex); err != nil {
+		err = errors.Wrap(err, "failed to update current address")
+		span.RecordError(err)
+		return err
 	}
 	return nil
 }

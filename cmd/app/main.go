@@ -7,7 +7,9 @@ import (
 	"Web3-Telegram-Wallet-Bot/internal/repository"
 	postgres2 "Web3-Telegram-Wallet-Bot/internal/repository/postgres"
 	"Web3-Telegram-Wallet-Bot/internal/service/account"
+	"Web3-Telegram-Wallet-Bot/internal/service/adapter/eth/infura"
 	"Web3-Telegram-Wallet-Bot/internal/service/adapter/wallet/bip32adapter"
+	"Web3-Telegram-Wallet-Bot/internal/tracing"
 	"context"
 	"os/signal"
 	"syscall"
@@ -56,6 +58,12 @@ func main() {
 		return
 	}
 
+	tracerProvider, err := tracing.NewTracerProvider(ctx, &cfg.Tracing)
+	if err != nil {
+		log.Errorf("failed to initialize tracer provider: %v", err)
+		return
+	}
+
 	botSettings := telebot.Settings{
 		Token:  cfg.TelegramBotConfig.Token,
 		Poller: &telebot.LongPoller{Timeout: time.Duration(cfg.TelegramBotConfig.Timeout) * time.Second},
@@ -72,21 +80,24 @@ func main() {
 		return
 	}
 
-	encryptor, err := aes.New(cfg.Encryption.MasterKey)
+	encryptor, err := aes.New(tracerProvider.Tracer("encryptor"), cfg.Encryption.MasterKey)
 	if err != nil {
 		log.Errorf("failed to create encryptor: %v", err)
 		return
 	}
 
-	postgresClient, err := postgres2.New(ctx, &cfg.DBConfig)
+	postgresClient, err := postgres2.New(ctx, tracerProvider.Tracer("postgres"), &cfg.DBConfig)
 	if err != nil {
 		log.Errorf("failed to create postgres client: %v", err)
 		return
 	}
-	encryptedPostgres := repository.New(encryptor, postgresClient)
-	hdWalletAdapter := bip32adapter.New()
+	encryptedPostgres := repository.New(tracerProvider.Tracer("encryptedPostgres"), encryptor, postgresClient)
+	hdWalletAdapter := bip32adapter.New(tracerProvider.Tracer("bip32adapter"))
+	ethProvider := infura.New(&cfg.Infura, tracerProvider.Tracer("infura"))
 
-	accountService := account.New(log, hdWalletAdapter, encryptedPostgres)
+	accountService := account.New(
+		log, hdWalletAdapter, encryptedPostgres, ethProvider, tracerProvider.Tracer("account-service"),
+	)
 
 	services := &telegram.BotServices{
 		Logger:         log,
