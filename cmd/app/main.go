@@ -3,7 +3,7 @@ package main
 import (
 	"Web3-Telegram-Wallet-Bot/internal/config"
 	"Web3-Telegram-Wallet-Bot/internal/controller/telegram"
-	"Web3-Telegram-Wallet-Bot/internal/encryption/aes"
+	"Web3-Telegram-Wallet-Bot/internal/encryption/aescipher"
 	"Web3-Telegram-Wallet-Bot/internal/repository"
 	postgres2 "Web3-Telegram-Wallet-Bot/internal/repository/postgres"
 	"Web3-Telegram-Wallet-Bot/internal/service/account"
@@ -36,10 +36,10 @@ func runMigrations(dbConfig *config.DBConfig) error {
 	}
 	errSrc, errDB := m.Close()
 	if errSrc != nil {
-		return errors.Wrap(err, "failed to close migration source")
+		return errors.Wrap(errSrc, "failed to close migration source")
 	}
 	if errDB != nil {
-		return errors.Wrap(err, "failed to close database connection")
+		return errors.Wrap(errDB, "failed to close database connection")
 	}
 	return nil
 }
@@ -80,7 +80,7 @@ func main() {
 		return
 	}
 
-	encryptor, err := aes.New(tracerProvider.Tracer("encryptor"), cfg.Encryption.MasterKey)
+	encryptor, err := aescipher.New(tracerProvider.Tracer("encryptor"), cfg.Encryption.MasterKey)
 	if err != nil {
 		log.Errorf("failed to create encryptor: %v", err)
 		return

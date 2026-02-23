@@ -167,14 +167,15 @@ func (a *BIP32Adapter) toCheckSumAddress(address string) string {
 	hash := sha3.NewLegacyKeccak256()
 	hash.Write([]byte(address))
 	hashedAddress := hex.EncodeToString(hash.Sum(nil))
-	checksumAddress := "0x"
+	var checksumAddress strings.Builder
+	checksumAddress.WriteString("0x")
 	for i, symbol := range address {
 		hashNibble, _ := strconv.ParseUint(string(hashedAddress[i]), 16, 4)
 		if unicode.IsLetter(symbol) && hashNibble >= 8 {
-			checksumAddress += strings.ToUpper(string(symbol))
+			checksumAddress.WriteString(strings.ToUpper(string(symbol)))
 		} else {
-			checksumAddress += string(symbol)
+			checksumAddress.WriteRune(symbol)
 		}
 	}
-	return checksumAddress
+	return checksumAddress.String()
 }

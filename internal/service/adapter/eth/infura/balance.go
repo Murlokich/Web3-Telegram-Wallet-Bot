@@ -39,7 +39,7 @@ func (c *Client) GetBalance(ctx context.Context, address string) (*big.Int, erro
 		return big.NewInt(0), err
 	}
 	req.Header.Set("Content-Type", "application/json")
-	resp, err := c.httpClient.Do(req)
+	resp, err := c.httpClient.Do(req) // #nosec G704 - endpoint comes from trusted config
 	if err != nil {
 		err = errors.Wrap(err, "failed to execute request")
 		span.RecordError(err)

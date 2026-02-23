@@ -1,4 +1,4 @@
-package aes
+package aescipher
 
 import (
 	"Web3-Telegram-Wallet-Bot/internal/encryption"

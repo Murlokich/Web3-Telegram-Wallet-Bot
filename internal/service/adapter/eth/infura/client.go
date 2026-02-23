@@ -14,5 +14,9 @@ type Client struct {
 }
 
 func New(cfg *config.Infura, tracer trace.Tracer) *Client {
-	return &Client{httpClient: http.DefaultClient, endpoint: cfg.Endpoint, tracer: tracer}
+	return &Client{
+		httpClient: http.DefaultClient,
+		endpoint:   cfg.Endpoint,
+		tracer:     tracer,
+	}
 }
